@@ -16,25 +16,22 @@ if __name__ == '__main__':
         proxySocket.bind(('', int(listen_port)))
         proxySocket.listen(1)
         print('The proxy is ready to receive')
+        clientSocket = proxySocket.accept()
+        serverSocket = socket(AF_INET, SOCK_STREAM)
+        serverSocket.connect((server_ip, 8080))
+        print('connection setup')
     except:
         print('unable to initialize proxy!')
         sys.exit(2)
+
     while True:
         try:
-            clientSocket, addr = proxySocket.accept()
             sentence = clientSocket.recv(1024)
-            print('client detected! data!')
-            serverSocket = socket(AF_INET, SOCK_STREAM)
-            serverSocket.connect((server_ip, 8080))
-            if len(sentence) > 0:
-                serverSocket.sendall(sentence)
+            serverSocket.sendall(sentence+'\n')
             response = serverSocket.recv(1024)
-            if len(response) > 0:
-                clientSocket.send(response)
-            #proxy_server(server_ip, 8080 ,clientSocket,addr,sentence)
+            clientSocket.send(response)
         except Exception as e:
             print(e)
-            proxySocket.close()
-            print('current client down.')
+            clientSocket = proxySocket.accept()
             #sys.exit(1)
 
