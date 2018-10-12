@@ -7,7 +7,7 @@ import sys
 class Proxy:
     def __init__(self,soc,server_ip):
         print('init: accepting client')
-        self.client = soc.accept()
+        self.client,_ = soc.accept()
         self.target = None
         self.request_url = server_ip
 
@@ -19,9 +19,9 @@ class Proxy:
         return request
 
     def connectServer(self,request):
-        self.target = socket.socket(AF_INET, SOCK_STREAM)
+        self.target = socket(AF_INET, SOCK_STREAM)
         print('connecting to server')
-        self.target.connect(self.request_url,8080)
+        self.target.connect((self.request_url,8080))
         print('sending message to server')
         self.target.send(request)
         self.nonblocking()
@@ -30,7 +30,6 @@ class Proxy:
         inputs = [self.client, self.target]
         while True:
             readable, writeable, errs = select.select(inputs, [], inputs, 3)
-            print('select result:', readable)
             if errs:
                 break
             for soc in readable:
