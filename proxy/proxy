@@ -18,33 +18,24 @@ class Proxy:
             return None
         return request
 
+    def getServerRequest(self):
+        print('receving from server')
+        request = self.target.recv(1024)
+        if request is None:
+            return None
+        return request
+
     def connectServer(self,request):
         self.target = socket(AF_INET, SOCK_STREAM)
         print('connecting to server')
         self.target.connect((self.request_url,8080))
-        print('sending message to server')
-        self.target.send(request)
-        self.nonblocking()
-
-    def nonblocking(self):
-        inputs = [self.client, self.target]
         while True:
-            readable, writeable, errs = select.select(inputs, [], inputs, 3)
-            if errs:
-                break
-            for soc in readable:
-                data = soc.recv(1024)
-                if data:
-                    if soc is self.client:
-                        print('send data to server')
-                        self.target.send(data)
-                    if soc is self.target:
-                        print('send data to client')
-                        self.client.send(data)
-                else:
-                    break
-        self.client.close()
-        self.target.close()
+            clientRequest = self.getClientRequest()
+            self.target.send(clientRequest)
+            serverRequest = self.getServerRequest()
+            self.client.send(serverRequest)
+
+    
 
     def run(self):
         request = self.getClientRequest()
@@ -58,6 +49,7 @@ if __name__ == '__main__':
     fake_ip = sys.argv[2]
     server_ip = sys.argv[3]
     proxySocket = socket(AF_INET, SOCK_STREAM)
+    proxySocket.setblocking(False)
     proxySocket.bind(('', int(listen_port)))
     proxySocket.listen(1)
     print('The proxy is ready to receive')
