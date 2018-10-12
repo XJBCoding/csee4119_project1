@@ -3,16 +3,18 @@ from socket import socket, AF_INET, SOCK_STREAM
 import time
 
 
-import sys
+#import sys
 
 if __name__ == '__main__':
-    listen_port = sys.argv[0]
-    fake_ip = sys.argv[1]
-    server_ip = sys.argv[2]
-
-
+    #print(sys.argv)
+    #listen_port = sys.argv[1]
+    #fake_ip = sys.argv[2]
+    #server_ip = sys.argv[3]
+    listen_port = "8080"
+    fake_ip = "127.0.0.1"
+    server_ip = "127.0.0.1"
     proxySocket = socket(AF_INET, SOCK_STREAM)
-    proxySocket.bind(('', listen_port))
+    proxySocket.bind(('', int(listen_port)))
     proxySocket.listen(1)
     print('The proxy is ready to receive')
     while True:
