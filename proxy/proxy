@@ -3,30 +3,6 @@ from socket import socket, AF_INET, SOCK_STREAM
 import time
 
 import sys
-def proxy_server(server_ip,port,conn,addr,data):
-    try:
-        print(server_ip,port,conn,addr,data)
-        serverSocket = socket(AF_INET, SOCK_STREAM)
-        conn.sendall(data)
-        serverSocket.connect((server_ip, port))
-        print("sending to" + str(addr))
-        serverSocket.sendall(data)
-
-
-        while True:
-            response = serverSocket.recv(1024)
-            if len(response) > 0:
-                conn.send(response)
-            else:
-                break
-        serverSocket.close()
-        conn.close()
-    except Exception as e:
-        print(e)
-        serverSocket.close()
-        conn.close()
-        print('Error in proxy_server!')
-        sys.exit(1)
 if __name__ == '__main__':
     print(sys.argv)
     listen_port = sys.argv[1]
@@ -48,10 +24,17 @@ if __name__ == '__main__':
             clientSocket, addr = proxySocket.accept()
             sentence = clientSocket.recv(1024)
             print('client detected! data!')
-            proxy_server(server_ip, 8080 ,clientSocket,addr,sentence)
+            serverSocket = socket(AF_INET, SOCK_STREAM)
+            serverSocket.connect((server_ip, 8080))
+            if len(sentence) > 0:
+                serverSocket.sendall(sentence)
+            response = serverSocket.recv(1024)
+            if len(response) > 0:
+                clientSocket.send(response)
+            #proxy_server(server_ip, 8080 ,clientSocket,addr,sentence)
         except Exception as e:
             print(e)
             proxySocket.close()
-            print('proxy shut down.')
-            sys.exit(1)
+            print('current client down.')
+            #sys.exit(1)
 
