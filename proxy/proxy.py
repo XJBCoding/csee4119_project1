@@ -2,7 +2,6 @@
 from socket import socket, AF_INET, SOCK_STREAM
 import time
 
-
 import sys
 def proxy_server(server_ip,port,conn,addr,data):
     try:
@@ -38,7 +37,7 @@ if __name__ == '__main__':
         print('The proxy is ready to receive')
     except:
         print('unable to initialize proxy!')
-        sys.exit(2)
+        sys.exit(3)
     while True:
         try:
             clientSocket, addr = proxySocket.accept()
