@@ -2,7 +2,6 @@
 from socket import socket, AF_INET, SOCK_STREAM
 import time
 
-
 import sys
 def proxy_server(server_ip,port,conn,addr,data):
     try:
@@ -16,12 +15,13 @@ def proxy_server(server_ip,port,conn,addr,data):
                 conn.send(response)
             else:
                 break
-    serverSocket.close()
-    conn.close()
+        serverSocket.close()
+        conn.close()
     except:
         serverSocket.close()
         conn.close()
         print('error in proxy_server!')
+        sys.exit(1)
 if __name__ == '__main__':
     print(sys.argv)
     listen_port = sys.argv[1]
@@ -37,16 +37,15 @@ if __name__ == '__main__':
         print('The proxy is ready to receive')
     except:
         print('unable to initialize proxy!')
+        sys.exit(2)
     while True:
         try:
             clientSocket, addr = proxySocket.accept()
             sentence = clientSocket.recv(1024)
             print('client detected! data:',sentence)
-            # Processing
-            # Todo
             proxy_server(server_ip,8080,clientSocket,addr,sentence)
         except:
-            clientSocket.close()
+            proxySocket.close()
             print('proxy shut down.')
-
+            sys.exit(1)
 

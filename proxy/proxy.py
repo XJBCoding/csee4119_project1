@@ -37,7 +37,7 @@ if __name__ == '__main__':
         print('The proxy is ready to receive')
     except:
         print('unable to initialize proxy!')
-        sys.exit(3)
+        sys.exit(4)
     while True:
         try:
             clientSocket, addr = proxySocket.accept()
