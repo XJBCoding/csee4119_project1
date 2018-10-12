@@ -5,10 +5,14 @@ import time
 import sys
 def proxy_server(server_ip,port,conn,addr,data):
     try:
+        print(server_ip,port,conn,addr,data)
         serverSocket = socket(AF_INET, SOCK_STREAM)
-        serverSocket.bind((server_ip, port))
-        serverSocket.send(data)
-        print("send to" + str(addr) + " with message: " + sentence)
+        conn.sendall(data)
+        serverSocket.connect((server_ip, port))
+        print("sending to" + str(addr))
+        serverSocket.sendall(data)
+
+
         while True:
             response = serverSocket.recv(1024)
             if len(response) > 0:
@@ -17,10 +21,11 @@ def proxy_server(server_ip,port,conn,addr,data):
                 break
         serverSocket.close()
         conn.close()
-    except:
+    except Exception as e:
+        print(e)
         serverSocket.close()
         conn.close()
-        print('error in proxy_server!')
+        print('Error in proxy_server!')
         sys.exit(1)
 if __name__ == '__main__':
     print(sys.argv)
@@ -42,9 +47,10 @@ if __name__ == '__main__':
         try:
             clientSocket, addr = proxySocket.accept()
             sentence = clientSocket.recv(1024)
-            print('client detected! data:',sentence)
-            proxy_server(server_ip,8080,clientSocket,addr,sentence)
-        except:
+            print('client detected! data!')
+            proxy_server(server_ip, 8080 ,clientSocket,addr,sentence)
+        except Exception as e:
+            print(e)
             proxySocket.close()
             print('proxy shut down.')
             sys.exit(1)
