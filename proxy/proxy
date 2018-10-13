@@ -8,19 +8,15 @@ if __name__ == '__main__':
     listen_port = sys.argv[1]
     fake_ip = sys.argv[2]
     server_ip = sys.argv[3]
-    #listen_port = "8080"
-    #fake_ip = "127.0.0.1"
-    #server_ip = "127.0.0.1"
     poll = []
     proxySocket = socket(AF_INET, SOCK_STREAM)
     proxySocket.bind(('', int(listen_port)))
     try:
         serverSocket.connect((server_ip,8080))
     except:
-        print('server is not on!')
+        pass
     proxySocket.listen(1)
     print('The proxy is ready to receive')
-
     while True:
         clientSocket, _ = proxySocket.accept()
         poll.append(clientSocket)
@@ -30,7 +26,6 @@ if __name__ == '__main__':
                 serverSocket.connect((server_ip,8080))
             except:
                 pass 
-            print(len(poll))
             currentSocket = poll.pop(0)
             try:
                 while True:
