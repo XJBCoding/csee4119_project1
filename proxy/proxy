@@ -24,17 +24,20 @@ if __name__ == '__main__':
         while len(poll):
             print(poll)
             currentSocket = poll.pop(0)
-            while True:
-                sentence = currentSocket.recv(1024)
-                if len(sentence) < 0:
-                    break
-                serverSocket.connect((server_ip, 8080))
-                serverSocket.send(sentence)
-                response = serverSocket.recv(1024)
-                if len(response) < 0:
-                    break
-                currentSocket.send(response)
-            print('current connection end.')
-            currentSocket.close()
-            serverSocket.close()
-    proxySocket.close()
+            serverSocket.connect((server_ip, 8080))
+            try:
+                while True:
+                    sentence = currentSocket.recv(1024)
+                    if len(sentence) < 0:
+                        break
+                    serverSocket.send(sentence)
+                    response = serverSocket.recv(1024)
+                    if len(response) < 0:
+                        break
+                    currentSocket.send(response)
+            except Exception as e:
+                print(e)
+                currentSocket.close()
+                serverSocket.close()
+            print('current connection down')
+    #proxySocket.close()
