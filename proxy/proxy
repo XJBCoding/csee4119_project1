@@ -13,8 +13,11 @@ if __name__ == '__main__':
     #server_ip = "127.0.0.1"
     poll = []
     proxySocket = socket(AF_INET, SOCK_STREAM)
-    serverSocket = socket(AF_INET, SOCK_STREAM)
     proxySocket.bind(('', int(listen_port)))
+    try:
+        serverSocket.connect((server_ip,8080))
+    except:
+        print('server is not on!')
     proxySocket.listen(1)
     print('The proxy is ready to receive')
 
@@ -22,9 +25,13 @@ if __name__ == '__main__':
         clientSocket, _ = proxySocket.accept()
         poll.append(clientSocket)
         while len(poll):
-            print(poll)
+            try:
+                serverSocket = socket(AF_INET, SOCK_STREAM) 
+                serverSocket.connect((server_ip,8080))
+            except:
+                pass 
+            print(len(poll))
             currentSocket = poll.pop(0)
-            serverSocket.connect((server_ip, 8080))
             try:
                 while True:
                     sentence = currentSocket.recv(1024)
