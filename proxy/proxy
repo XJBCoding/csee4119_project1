@@ -1,62 +1,40 @@
 #!/usr/bin/env python
 from socket import socket, AF_INET, SOCK_STREAM
-import select
 import time
 
 import sys
-class Proxy:
-    def __init__(self,soc,server_ip):
-        print('init: accepting client')
-        self.client,_ = soc.accept()
-        self.target = None
-        self.request_url = server_ip
-
-    def getClientRequest(self):
-        print('receving from client')
-        request = self.client.recv(1024)
-        if request is None:
-            return None
-        return request
-
-    def getServerRequest(self):
-        print('receving from server')
-        request = self.target.recv(1024)
-        if request is None:
-            return None
-        return request
-
-    def connectServer(self,request):
-        self.target = socket(AF_INET, SOCK_STREAM)
-        print('connecting to server')
-        self.target.connect((self.request_url,8080))
-        while True:
-            clientRequest = self.getClientRequest()
-            self.target.send(clientRequest)
-            serverRequest = self.getServerRequest()
-            self.client.send(serverRequest)
-
-    
-
-    def run(self):
-        request = self.getClientRequest()
-        if request:
-            self.connectServer(request)
-
-
 if __name__ == '__main__':
     print(sys.argv)
     listen_port = sys.argv[1]
     fake_ip = sys.argv[2]
     server_ip = sys.argv[3]
+    #listen_port = "8080"
+    #fake_ip = "127.0.0.1"
+    #server_ip = "127.0.0.1"
+    poll = []
     proxySocket = socket(AF_INET, SOCK_STREAM)
-    proxySocket.setblocking(False)
+    serverSocket = socket(AF_INET, SOCK_STREAM)
     proxySocket.bind(('', int(listen_port)))
     proxySocket.listen(1)
     print('The proxy is ready to receive')
 
     while True:
-        try:
-            Proxy(proxySocket, server_ip).run()
-        except Exception as e:
-            print(e)
-
+        clientSocket, _ = proxySocket.accept()
+        poll.append(clientSocket)
+        while len(poll):
+            print(poll)
+            currentSocket = poll.pop(0)
+            while True:
+                sentence = currentSocket.recv(1024)
+                if len(sentence) < 0:
+                    break
+                serverSocket.connect((server_ip, 8080))
+                serverSocket.send(sentence)
+                response = serverSocket.recv(1024)
+                if len(response) < 0:
+                    break
+                currentSocket.send(response)
+            print('current connection end.')
+            currentSocket.close()
+            serverSocket.close()
+    proxySocket.close()
