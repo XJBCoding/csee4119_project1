@@ -11,10 +11,6 @@ if __name__ == '__main__':
     poll = []
     proxySocket = socket(AF_INET, SOCK_STREAM)
     proxySocket.bind(('', int(listen_port)))
-    try:
-        serverSocket.connect((server_ip,8080))
-    except:
-        pass
     proxySocket.listen(1)
     print('The proxy is ready to receive')
     while True:
