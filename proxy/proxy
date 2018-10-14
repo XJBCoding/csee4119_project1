@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from socket import socket, AF_INET, SOCK_STREAM
 import sys
+import select
 
 if __name__ == '__main__':
     listen_port = sys.argv[1]
@@ -17,29 +18,26 @@ if __name__ == '__main__':
         clientSocket, _ = proxySocket.accept()
         poll.append(clientSocket)
         while len(poll):
+            print('new client come in')
+            # try to connect to server
             try:
                 serverSocket = socket(AF_INET, SOCK_STREAM) 
                 serverSocket.connect((server_ip, 8080))
             except:
                 pass 
             currentSocket = poll.pop(0)
-            try:
-                while True:
 
-                    currentSocket.sendUrgentData(0xFF)
-                    serverSocket.sendUrgentData(0xFF)
+            while True:
+                inputs = [currentSocket, serverSocket]
+                ready_to_read, ready_to_write, in_error = select.select(inputs, [], inputs, 1)
+                if in_error:
+                    break
+                sentence = currentSocket.recv(1024)
+                serverSocket.send(sentence)
+                response = serverSocket.recv(1024)
+                currentSocket.send(response)
 
-                    sentence = currentSocket.recv(1024)
-                    if len(sentence) < 0:
-                        break
-                    serverSocket.send(sentence)
-                    response = serverSocket.recv(1024)
-                    if len(response) < 0:
-                        break
-                    currentSocket.send(response)
-            except Exception as e:
-                print(e)
-                currentSocket.close()
-                serverSocket.close()
+            currentSocket.close()
+            serverSocket.close()
             print('current connection down')
     #proxySocket.close()
