@@ -2,6 +2,7 @@
 from socket import socket, AF_INET, SOCK_STREAM
 import sys
 import select
+import time
 
 if __name__ == '__main__':
     listen_port = sys.argv[1]
@@ -19,9 +20,9 @@ if __name__ == '__main__':
         poll.append(clientSocket)
         while len(poll):
             print('new client come in')
+            serverSocket = socket(AF_INET, SOCK_STREAM)
             # try to connect to server
             try:
-                serverSocket = socket(AF_INET, SOCK_STREAM) 
                 serverSocket.connect((server_ip, 8080))
             except:
                 pass 
@@ -29,14 +30,16 @@ if __name__ == '__main__':
             try:
                 while True:
                     inputs = [currentSocket, serverSocket]
-                    ready_to_read, ready_to_write, in_error = select.select(inputs, [], inputs, 1)
-                    print(inputs)
-                    if len(inputs) == 0:
-                        break
                     sentence = currentSocket.recv(1024)
                     serverSocket.send(sentence)
+                    r,w,e =  select.select(inputs, [], [], 1)
+                    if len(r) != 0:
+                        raise Exception('client or server down')
                     response = serverSocket.recv(1024)
                     currentSocket.send(response)
+                    r,w,e =  select.select(inputs, [], [], 1)
+                    if len(r) != 0:
+                        raise Exception('client or server down')
             except Exception as e:
                 print(e)
                 currentSocket.close()
