@@ -4,6 +4,8 @@ import select
 import time
 
 import sys
+import thread
+from multiprocessing import Process
 class Proxy:
     def __init__(self,soc,server_ip):
         print('init: accepting client')
@@ -65,7 +67,7 @@ if __name__ == '__main__':
 
     while True:
         try:
-            Proxy(proxySocket, server_ip).run()
+            thread.start_new_thread(Proxy(proxySocket, server_ip).run, ())
         except Exception as e:
             print(e)
 
