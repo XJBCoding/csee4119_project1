@@ -7,24 +7,26 @@ import sys
 import thread
 from multiprocessing import Process
 class Proxy:
-    def __init__(self,soc,server_ip):
+    def __init__(self,soc,fake_ip,server_ip):
         print('init: accepting client')
-        self.client = soc.accept()
+        self.client,_ = soc.accept()
         self.target = None
         self.request_url = server_ip
+        self.fake_ip = (fake_ip,9000)
 
     def getClientRequest(self):
-        print('receving from client')
+        #print('receving from client')
         request = self.client.recv(1024)
         if request is None:
             return None
         return request
 
     def connectServer(self,request):
-        self.target = socket.socket(AF_INET, SOCK_STREAM)
-        print('connecting to server')
-        self.target.connect(self.request_url,8080)
-        print('sending message to server')
+        self.target = socket(AF_INET, SOCK_STREAM)
+        #print('connecting to server')
+        self.target.bind(self.fake_ip)
+        self.target.connect((self.request_url,8080))
+        #print('sending message to server')
         self.target.send(request)
         self.nonblocking()
 
@@ -32,18 +34,18 @@ class Proxy:
         inputs = [self.client, self.target]
         while True:
             readable, writeable, errs = select.select(inputs, [], inputs, 3)
-            print('select result:', readable)
+        #    print('select result:', readable)
             if errs:
                 break
             for soc in readable:
                 data = soc.recv(1024)
                 if data:
                     if soc is self.client:
-                        print('send data to server')
+        #                print('send data to server')
                         self.target.send(data)
                     if soc is self.target:
                         print('send data to client')
-                        self.client.send(data)
+        #                self.client.send(data)
                 else:
                     break
         self.client.close()
@@ -67,7 +69,7 @@ if __name__ == '__main__':
 
     while True:
         try:
-            thread.start_new_thread(Proxy(proxySocket, server_ip).run, ())
+            thread.start_new_thread(Proxy(proxySocket,fake_ip, server_ip).run, ())
         except Exception as e:
             print(e)
 
