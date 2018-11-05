@@ -2,7 +2,7 @@
 from socket import socket, AF_INET, SOCK_STREAM
 import select
 import time
-
+import re
 import sys
 import thread
 from multiprocessing import Process
@@ -12,11 +12,11 @@ class Proxy:
         self.client,_ = soc.accept()
         self.target = None
         self.request_url = server_ip
-        self.fake_ip = (fake_ip,9000)
+        self.fake_ip = (fake_ip,0)
 
     def getClientRequest(self):
         #print('receving from client')
-        request = self.client.recv(1024)
+        request = self.client.recv(4096)
         if request is None:
             return None
         return request
@@ -28,9 +28,11 @@ class Proxy:
         self.target.connect((self.request_url,8080))
         #print('sending message to server')
         self.target.send(request)
-        self.nonblocking()
+        self.blocking()
 
-    def nonblocking(self):
+    def blocking(self):
+        pat_big_buck = re.compile(b'bunny.f4m')
+        pat_length = re.compile(b'Content-Length: .\w+')
         inputs = [self.client, self.target]
         while True:
             readable, writeable, errs = select.select(inputs, [], inputs, 3)
@@ -38,14 +40,24 @@ class Proxy:
             if errs:
                 break
             for soc in readable:
-                data = soc.recv(1024)
+                data = soc.recv(8192)
                 if data:
                     if soc is self.client:
-        #                print('send data to server')
+                        #print(data)
+                        result = re.search(pat_big_buck,data,flags=0)
+                        if result != None:
+                            data.decode()
+                            data = data.replace('bunny','bunny_nolist')
+                            data.encode()
+                        #print('    server')
                         self.target.send(data)
                     if soc is self.target:
-                        print('send data to client')
-        #                self.client.send(data)
+                        #print('client')
+                        result = re.search(pat_length,data,flags=0)
+                        if result != None:
+                            length = result.group(0)[16:]
+                            #print(length)
+                        self.client.send(data)
                 else:
                     break
         self.client.close()
