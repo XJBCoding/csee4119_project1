@@ -15,6 +15,7 @@ class Proxy:
         self.fake_ip = (fake_ip,0)
         self.send_count = 0 
         self.recv_count = 0
+        self.br = 10
         self.a = alpha
         self.log = open(log_path,'w+')
     def getClientRequest(self):
@@ -31,14 +32,30 @@ class Proxy:
         self.target.connect((self.request_url,8080))
         #print('sending message to server')
         self.target.send(request)
-        self.blocking()
-
-    def blocking(self):
+        self.nonblocking()
+    
+    def chooseBitrate(self,throughput):
+        global bitrate
+        length = len(bitrate)
+        for i in range(length):
+            if throughput/1.5 < bitrate[i]:
+                if i == 0:
+                    return bitrate[0]
+                else:
+                    return bitrate[i-1]
+        return bitrate[length-1]
+    
+    def nonblocking(self):
+        global bitrate
         pat_big_buck = re.compile(b'bunny.f4m')
         pat_length = re.compile(b'Content-Length: .\w+')
         pat_response = re.compile(b'Connection:')
         pat_name = re.compile(b'/vod/.*Frag[0-9]*')
+        pat_bitrate = re.compile(b'bitrate="[0-9]*"')
+        pat_change = re.compile(b'/vod/[0-9]*')
         inputs = [self.client, self.target]
+        flag = 0
+        ts = time.time()
         while True:
             readable, writeable, errs = select.select(inputs, [], inputs, 3)
             if errs:
@@ -48,15 +65,27 @@ class Proxy:
                 if data:
                     if soc is self.client:
                         self.send_count += 1
-                        ts = time.time()
+                        #ts = time.time()
                         result = re.search(pat_big_buck,data,flags=0)
                         if result != None:
                             data.decode()
+                            real_data = data
                             data = data.replace('bunny','bunny_nolist')
                             data.encode()
+                            real_data.encode()
+                            self.target.send(real_data)
+                            manifest =  self.target.recv(409600)
+                            bitrate_list = re.findall(pat_bitrate,manifest)
+                            flag = 1
+                            for i in bitrate_list:
+                                print(int(i.split('"')[1]))
+                                bitrate.append(int(i.split('"')[1]))
                         result = re.search(pat_name,data)
                         if result != None:
+                            
+                            data = re.sub(pat_change,'/vod/'+str(self.br),data)
                             chunkname = result.group(0)
+                            chunkname = re.sub(r'/vod/[0-9]*','/vod/'+str(self.br),chunkname)
                         else:
                             chunkname = 'Not a chunk'
                         self.target.send(data)
@@ -69,10 +98,15 @@ class Proxy:
                             if self.recv_count > 0:
                                 tf = time.time()
                                 dur = tf-ts
-                                thr = 8*length/(tf-ts)/1024
-                                avg_thr = self.a * dur + (1-self.a) * t_old
-                                t_old = dur
-                                self.log.write('%d %f %d %d %s %s\n' % (tf,dur,thr,avg_thr,self.request_url,chunkname))
+                                ts = time.time()
+                                thr = 8*length/(dur)/1024
+                                avg_thr = self.a * thr + (1-self.a) * t_old
+                                t_old = avg_thr
+                                if flag == 1:
+                                    if chunkname != 'Not a chunk':
+                                        self.br = self.chooseBitrate(avg_thr)
+                                       # print(avg_thr,self.br,chunkname)
+                                        self.log.write(str(int(tf))+" "+str(dur)+" "+str(int(thr))+" "+str(int(avg_thr))+" "+str(self.br)+" "+self.request_url+" "+chunkname+"\n")
                             else:
                                 t_old = 0
                             self.recv_count += 1
@@ -99,6 +133,7 @@ if __name__ == '__main__':
     proxySocket = socket(AF_INET, SOCK_STREAM)
     proxySocket.bind(('', int(listen_port)))
     proxySocket.listen(1)
+    bitrate = []
     print('The proxy is ready to receive')
 
     while True:
