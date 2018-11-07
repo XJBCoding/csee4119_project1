@@ -57,7 +57,6 @@ class Proxy:
         cur_count = 0
         ts = time.time()
         chunkname = 'Not a chunk'
-        last_chunkname = chunkname
         while True:
             readable, writeable, errs = select.select(inputs, [], inputs, 20)
             if errs:
@@ -104,12 +103,11 @@ class Proxy:
                                 thr = 8*length/(dur)/1024
                                 avg_thr = self.a * thr + (1-self.a) * t_old
                             #    print('t old',t_old,'avg_thr',avg_thr)
-                                t_old = avg_thr
                                 ts = time.time()
-                                if chunkname != 'Not a chunk' and chunkname != last_chunkname:
+                                t_old = avg_thr
+                                if chunkname != 'Not a chunk':
                                     log.write('%d %f %d %.1f %d %s %s\n'%(tf,dur,thr,avg_thr,self.br,self.request_url,chunkname))
                                     self.br = self.chooseBitrate(avg_thr)
-                                    last_chunkname = chunkname
                             else:
                                 t_old = 0
                             self.recv_count += 1
