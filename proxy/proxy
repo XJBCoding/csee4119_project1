@@ -27,11 +27,11 @@ class Proxy:
     def connectServer(self,request):
         self.target = socket(AF_INET, SOCK_STREAM)
         #print('connecting to server')
-        self.target.bind(self.fake_ip)
+        self.target.bind(self.fake_ip) #bind socket to fake ip
         self.target.connect((self.request_url,8080))
         #print('sending message to server')
         self.target.send(request)
-        self.nonblocking()
+        self.communicating()
     
     def chooseBitrate(self,throughput):
         global bitrate
@@ -44,14 +44,16 @@ class Proxy:
                     return bitrate[i-1]
         return bitrate[length-1]
     
-    def nonblocking(self):
+    def communicating(self):
         global bitrate
+        # patterns for finding corresponding information
         pat_big_buck = re.compile(b'.f4m')
         pat_length = re.compile(b'Content-Length: .\w+')
         pat_response = re.compile(b'Connection:')
         pat_name = re.compile(b'/vod/.*Frag[0-9]*')
         pat_bitrate = re.compile(b'bitrate="[0-9]*"')
         pat_change = re.compile(b'/vod/[0-9]*')
+        # initialize parameters 
         inputs = [self.client, self.target]
         buff_size = 4096
         cur_count = 0
@@ -62,15 +64,17 @@ class Proxy:
             if errs:
                 break
             for soc in readable:
+                # receive data and check whether it is from client or server
                 data = soc.recv(buff_size)
                 if data:
                     if soc is self.client:
+                        #ts = time.time() # if start timer when receving request, start ts here.
                         self.send_count += 1
                         result = re.search(pat_big_buck,data,flags=0)
                         if result != None:
                             data.decode()
                             real_data = data
-                            data = data.replace('.f4m','_nolist.f4m')
+                            data = data.replace('.f4m','_nolist.f4m') # request no_list.f4m instead of original .f4m
                             data.encode()
                             real_data.encode()
                             self.target.send(real_data)
@@ -78,7 +82,7 @@ class Proxy:
                             bitrate_list = re.findall(pat_bitrate,manifest)
                             for i in bitrate_list:
                                 print(int(i.split('"')[1]))
-                                bitrate.append(int(i.split('"')[1]))
+                                bitrate.append(int(i.split('"')[1])) # add received bittrates into a list
                         result = re.search(pat_name,data)
                         if result != None:
                             data = re.sub(pat_change,'/vod/'+str(self.br),data)
@@ -88,6 +92,7 @@ class Proxy:
                             chunkname = 'Not a chunk'
                         self.target.send(data)
                     if soc is self.target:
+                        # use content length and packet count to find the last packet's postion
                         result = re.search(pat_length,data,flags=0)
                         if result != None:
                             length = float(result.group(0)[16:])
@@ -95,6 +100,7 @@ class Proxy:
                         else:
                             cur_count += 1
                         self.client.send(data)
+                        # locate the last packet
                         if cur_count * buff_size > length:
                             cur_count = 1
                             if self.recv_count > 0:
@@ -102,8 +108,7 @@ class Proxy:
                                 dur = tf-ts
                                 thr = 8*length/(dur)/1024
                                 avg_thr = self.a * thr + (1-self.a) * t_old
-                            #    print('t old',t_old,'avg_thr',avg_thr)
-                                ts = time.time()
+                                ts = time.time() # start ts here to have a better duration estimation
                                 t_old = avg_thr
                                 if chunkname != 'Not a chunk':
                                     log.write('%d %f %d %.1f %d %s %s\n'%(tf,dur,thr,avg_thr,self.br,self.request_url,chunkname))
@@ -138,6 +143,7 @@ if __name__ == '__main__':
     log = open(log_path,'w')
     while True:
         try:
+            # a new thread for each connection
             thread.start_new_thread(Proxy(proxySocket,float(a),fake_ip, server_ip).run, ())
         except Exception as e:
             print(e)
